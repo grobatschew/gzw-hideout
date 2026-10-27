@@ -144,9 +144,11 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .tag.maxed { background: var(--built-bg); color: var(--built); }
 .tag.prog { background: var(--track); color: var(--muted); }
 .lvls { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.lvl { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; align-items: start; }
+.lvl { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 8px; align-items: start; }
 .lvl-label { font-family: var(--font-mono); font-weight: 500; font-size: 13px; color: var(--muted); padding-top: 2px; }
 .lvl.next .lvl-label { color: var(--accent); }
+.lvl.next.ready .lvl-label, .lvl.next.ready .next-tag { color: var(--built); }
+.lvl.ready .lvl-label::after { content: " \2713"; }
 .lvl.built { color: var(--muted); }
 .lvl.built .built-note { color: var(--built); font-size: 13px; padding-top: 1px; }
 .next-tag { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: var(--accent); display: block; margin-bottom: 4px; }
@@ -154,6 +156,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .chip { display: inline-flex; gap: 6px; align-items: baseline; border: 1px solid var(--line); background: var(--bg); border-radius: 3px; padding: 2px 7px; font-size: 13px; }
 .chip b { font-family: var(--font-mono); font-weight: 500; }
 .chip.money { border-color: var(--accent); }
+.chip.ok { border-color: var(--built); background: var(--built-bg); color: var(--built); }
+.chip.short { border-style: dashed; border-color: var(--accent); }
+.mk { font-style: normal; font-size: 12px; font-weight: 600; }
 .lvl.later .chip { color: var(--muted); }
 
 /* bill of materials */
@@ -298,7 +303,7 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
     </section>
 
     <section class="section" role="tabpanel" id="panel-cards" aria-labelledby="tab-cards" hidden>
-      <div class="section-head"><h2>Still needed, by station</h2><p>The next level to build is marked.</p></div>
+      <div class="section-head"><h2>Still needed, by station</h2><p>The next level to build is marked. Green means your "I have" stock covers it.</p></div>
       <div class="cards" id="cards"></div>
     </section>
   </div>
@@ -518,13 +523,22 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
     });
   }
 
-  function chips(lvl) {
+  function chips(lvl, check) {
     var out = "";
     Object.keys(lvl).forEach(function (k) {
       if (k === M) out += '<span class="chip money"><b>' + money(lvl[k]) + '</b></span>';
-      else out += '<span class="chip"><b>' + lvl[k] + '×</b>' + k + '</span>';
+      else if (!check) out += '<span class="chip"><b>' + lvl[k] + '×</b>' + k + '</span>';
+      else {
+        var got = have[k] || 0, ok = got >= lvl[k];
+        out += '<span class="chip ' + (ok ? "ok" : "short") + '" title="' + (ok ? "Enough in stock" : "You have " + got + " of " + lvl[k]) + '"><b>' + lvl[k] + '×</b>' + k +
+          ' <i class="mk">' + (ok ? "\u2713" : "have " + got) + '</i></span>';
+      }
     });
     return out;
+  }
+  /* true when the stash covers every material of this level (money is not tracked) */
+  function levelReady(lvl) {
+    return Object.keys(lvl).every(function (k) { return k === M || (have[k] || 0) >= lvl[k]; });
   }
 
   function renderCards() {
@@ -539,9 +553,9 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
         if (L <= cur) {
           html += '<li class="lvl built"><span class="lvl-label">L' + L + '</span><span class="built-note">Built</span></li>';
         } else {
-          var next = L === cur + 1;
-          html += '<li class="lvl ' + (next ? "next" : "later") + '"><span class="lvl-label">L' + L + '</span><div>' +
-            (next ? '<span class="next-tag">Next</span>' : "") + '<div class="chips">' + chips(lvl) + '</div></div></li>';
+          var next = L === cur + 1, ready = next && levelReady(lvl);
+          html += '<li class="lvl ' + (next ? "next" : "later") + (ready ? " ready" : "") + '"><span class="lvl-label">L' + L + '</span><div>' +
+            (next ? '<span class="next-tag">' + (ready ? "Next &middot; materials ready" : "Next") + '</span>' : "") + '<div class="chips">' + chips(lvl, next) + '</div></div></li>';
         }
       });
       html += "</ul></article>";
@@ -592,6 +606,7 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
     saveHave();
     if (!fromInput) row.querySelector("input").value = v;
     refreshOk();
+    renderCards();
   }
 
   /* export / import */
