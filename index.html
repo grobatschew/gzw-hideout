@@ -54,6 +54,34 @@
   color-scheme: dark;
 }
 
+/* Light mode: the Options checkbox sets data-mode="light" to override a dark system theme */
+:root[data-mode="light"] {
+  --bg: #e9ebe4; --surface: #f5f6f1; --fg: #20261c; --muted: #5d665a; --line: #c9cdc0; --track: #d6d9cc;
+  --accent: #b4561b; --accent-fg: #ffffff; --built: #3d6b3a; --built-bg: #dde7d6;
+  color-scheme: light;
+}
+/* High contrast mode: extra token sets, only active when the Options checkbox sets data-hc="on" */
+:root[data-hc="on"] {
+  color-scheme: light;
+  --bg: #ffffff; --surface: #ffffff; --fg: #000000; --muted: #2b2b2b; --line: #3d3d3d; --track: #d0d0d0;
+  --accent: #9a2f00; --accent-fg: #ffffff; --built: #0b5c14; --built-bg: #d9f2dc;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-hc="on"]:not([data-theme="light"]):not([data-mode="light"]) {
+    --bg: #000000; --surface: #0a0a0a; --fg: #ffffff; --muted: #e0e0e0; --line: #bdbdbd; --track: #3a3a3a;
+    --accent: #ffb347; --accent-fg: #000000; --built: #7dff8a; --built-bg: #0f3a14;
+    color-scheme: dark;
+  }
+}
+:root[data-hc="on"][data-theme="dark"]:not([data-mode="light"]) {
+  --bg: #000000; --surface: #0a0a0a; --fg: #ffffff; --muted: #e0e0e0; --line: #bdbdbd; --track: #3a3a3a;
+  --accent: #ffb347; --accent-fg: #000000; --built: #7dff8a; --built-bg: #0f3a14;
+  color-scheme: dark;
+}
+:root[data-hc="on"] body { font-weight: 500; }
+:root[data-hc="on"] :is(.btn, .ctl, .card, .opt-row, .table-wrap, .chip, .menu, dialog, .seg button, .step, .stepper input, .field input, .copybox) { border-width: 2px; }
+:root[data-hc="on"] :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+:root[data-hc="on"] .tab[aria-selected="true"] { border-bottom-width: 5px; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body {
@@ -77,7 +105,7 @@ h3 { font-size: 20px; line-height: 1.15; letter-spacing: 0.02em; text-transform:
 p { margin: 0; }
 
 /* header */
-.head { display: flex; flex-wrap: wrap; gap: 20px 40px; align-items: end; justify-content: space-between; }
+.head { display: flex; flex-wrap: wrap; gap: 20px 40px; align-items: end; justify-content: space-between; margin-bottom: -14px; }
 .head-title { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .head-sub { color: var(--muted); max-width: 52ch; }
 .progress { flex: 1 1 320px; max-width: 460px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
@@ -131,7 +159,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 /* bill of materials */
 .bom-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
 .bom-sum { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: baseline; }
-.bom-sum .big { font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1; }
+.bom-sum .big { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1; }
 .btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn { font: inherit; font-size: 14px; font-weight: 500; padding: 8px 14px; border-radius: 3px; border: 1px solid var(--fg); background: transparent; color: var(--fg); cursor: pointer; }
 .btn:hover { background: var(--fg); color: var(--bg); }
@@ -162,17 +190,20 @@ tr.money td { font-weight: 600; background: var(--bg); }
 .note { color: var(--muted); font-size: 13px; }
 .note a { color: var(--fg); text-decoration: underline; text-underline-offset: 2px; }
 .note a:hover { color: var(--accent); }
-.chars { display: flex; align-items: center; gap: 10px; }
-.chars .seg { flex: 1; min-width: 0; }
-.chars .seg button { flex: 1 1 auto; min-width: 36px; max-width: 11em; padding: 0 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chars { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.chars .seg { flex: 0 1 auto; min-width: 0; }
+.chars .seg button { flex: 0 1 auto; min-width: 40px; padding: 0 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field input { height: 36px; font: inherit; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 3px; padding: 0 10px; }
 .field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.topbar { display: flex; align-items: center; min-height: 36px; margin-bottom: -22px; }
-.opts { position: absolute; top: -14px; right: 0; z-index: 20; }
+.topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 12px; margin-bottom: -22px; }
+.opts { position: relative; flex: none; z-index: 20; }
 .menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 230px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px; display: flex; flex-direction: column; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
 .menu-item { font: inherit; text-align: left; background: none; border: 0; color: var(--fg); padding: 10px 12px; border-radius: 3px; cursor: pointer; }
 .menu-item:hover { background: var(--track); }
+.menu-check { display: flex; align-items: center; gap: 10px; }
+button.menu-item + .menu-check { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 12px; border-radius: 0 0 3px 3px; }
+.menu-check input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
 .tabbed { display: flex; flex-direction: column; gap: 22px; }
 .tabbed .section-head { border-bottom: 0; padding-bottom: 0; }
 .tabs { display: flex; gap: 4px; box-shadow: inset 0 -2px 0 var(--fg); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
@@ -195,37 +226,36 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
 @media (max-width: 480px) { h1 { font-size: 34px; } .tab { font-size: 16px; padding: 8px 10px; } }
 </style>
 
+<script>try {
+  if (localStorage.getItem("gzw-hideout-hc-v1") === "1") document.documentElement.setAttribute("data-hc", "on");
+  if (localStorage.getItem("gzw-hideout-light-v1") === "1") document.documentElement.setAttribute("data-mode", "light");
+} catch (e) {}</script>
+
 <main class="wrap">
   <div class="topbar">
-    <span class="eyebrow">Gray Zone Warfare</span>
-  </div>
-  <div class="opts">
-    <button class="btn" id="opt-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="opt-menu">Options &#9662;</button>
-    <div class="menu" id="opt-menu" hidden>
-      <button class="menu-item" id="opt-names" type="button">Character names&hellip;</button>
-      <button class="menu-item" id="opt-export" type="button">Copy export string</button>
-      <button class="menu-item" id="opt-import" type="button">Import&hellip;</button>
+    <div class="chars" role="group" aria-label="Character">
+      <span class="eyebrow">Character:</span>
+      <div class="seg" id="chars">
+        <button type="button" data-i="0">1</button>
+        <button type="button" data-i="1">2</button>
+        <button type="button" data-i="2">3</button>
+        <button type="button" data-i="3">4</button>
+      </div>
+    </div>
+    <div class="opts">
+      <button class="btn" id="opt-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="opt-menu">Options &#9662;</button>
+      <div class="menu" id="opt-menu" hidden>
+        <button class="menu-item" id="opt-names" type="button">Character names&hellip;</button>
+        <button class="menu-item" id="opt-export" type="button">Copy export string</button>
+        <button class="menu-item" id="opt-import" type="button">Import&hellip;</button>
+        <label class="menu-item menu-check" for="lm"><input type="checkbox" id="lm"> Light mode</label>
+        <label class="menu-item menu-check" for="hc"><input type="checkbox" id="hc"> High contrast mode</label>
+      </div>
     </div>
   </div>
 
   <header class="head">
-    <div class="head-title">
-      <h1>Hideout Upgrade Tracker</h1>
-      <p class="head-sub">Set your built levels on the Station levels tab. The other tabs show only what is left to build. Each character keeps its own levels and materials. Everything is saved in this browser. To move status to another device, use the Options &gt; Import/Export feature.</p>
-    </div>
-    <div class="progress" aria-live="polite">
-      <div class="chars" role="group" aria-label="Character">
-        <span class="eyebrow">Character:</span>
-        <div class="seg" id="chars">
-          <button type="button" data-i="0">1</button>
-          <button type="button" data-i="1">2</button>
-          <button type="button" data-i="2">3</button>
-          <button type="button" data-i="3">4</button>
-        </div>
-      </div>
-      <div class="progress-row"><span><b class="num" id="p-built">0</b> of <span class="num" id="p-total">0</span> levels built</span><span class="num" id="p-money"></span></div>
-      <div class="bar" role="progressbar" aria-label="Hideout progress" aria-valuemin="0" aria-valuemax="100" id="p-bar-wrap"><span id="p-bar"></span></div>
-    </div>
+    <h1>Hideout upgrade materials</h1>
   </header>
 
   <div class="tabbed">
@@ -239,9 +269,6 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
       <div class="section-head"><h2>Bill of materials</h2><p>Everything left to reach max level on every station.</p></div>
       <div class="bom-tools">
         <div class="bom-sum"><span class="big num" id="bom-money">$0</span><span class="note" id="bom-count"></span></div>
-        <div class="btns">
-          <button class="btn" id="copy" type="button">Copy list</button>
-        </div>
       </div>
       <div class="table-wrap"><table>
         <thead id="bom-head"><tr>
@@ -252,6 +279,7 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
         </tr></thead>
         <tbody id="bom"></tbody>
       </table></div>
+      <div class="btns"><button class="btn" id="copy" type="button">Copy list</button></div>
       <textarea class="copybox" id="copybox" readonly hidden aria-label="Bill of materials as text"></textarea>
       <p class="note" id="msg" aria-live="polite"></p>
       <p class="note">Source: <a href="https://gray-zone-warfare.fandom.com/wiki/Hideout" target="_blank" rel="noopener noreferrer">Hideout page on the Gray Zone Warfare wiki</a></p>
@@ -605,6 +633,30 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
     try { localStorage.setItem(SUB_KEY, subtract ? "1" : "0"); } catch (e) {}
   });
 
+  /* light mode option */
+  var LM_KEY = "gzw-hideout-light-v1", lmEl = $("lm");
+  function applyLight(on) { if (on) document.documentElement.setAttribute("data-mode", "light"); else document.documentElement.removeAttribute("data-mode"); }
+  var lmOn = false;
+  try { lmOn = localStorage.getItem(LM_KEY) === "1"; } catch (e) {}
+  lmEl.checked = lmOn;
+  applyLight(lmOn);
+  lmEl.addEventListener("change", function () {
+    applyLight(lmEl.checked);
+    try { localStorage.setItem(LM_KEY, lmEl.checked ? "1" : "0"); } catch (e) {}
+  });
+
+  /* high contrast option */
+  var HC_KEY = "gzw-hideout-hc-v1", hcEl = $("hc");
+  function applyHc(on) { if (on) document.documentElement.setAttribute("data-hc", "on"); else document.documentElement.removeAttribute("data-hc"); }
+  var hcOn = false;
+  try { hcOn = localStorage.getItem(HC_KEY) === "1"; } catch (e) {}
+  hcEl.checked = hcOn;
+  applyHc(hcOn);
+  hcEl.addEventListener("change", function () {
+    applyHc(hcEl.checked);
+    try { localStorage.setItem(HC_KEY, hcEl.checked ? "1" : "0"); } catch (e) {}
+  });
+
   /* options menu */
   var menu = $("opt-menu"), optBtn = $("opt-btn");
   function menuOpen(on) { menu.hidden = !on; optBtn.setAttribute("aria-expanded", on ? "true" : "false"); }
@@ -802,19 +854,7 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
     lastList = rows.map(function (k) { return rem[k] + "x " + k; }).concat(remMoney ? [money(remMoney)] : []).join("\n");
   }
 
-  function renderProgress() {
-    var built = 0, total = 0;
-    all.forEach(function (s) { built += state[s.id]; total += s.levels.length; });
-    $("p-built").textContent = built;
-    $("p-total").textContent = total;
-    var pct = total ? Math.round(built / total * 100) : 0;
-    $("p-bar").style.width = pct + "%";
-    $("p-bar-wrap").setAttribute("aria-valuenow", pct);
-    var rem = totals(true);
-    $("p-money").textContent = money(rem[M] || 0) + " left";
-  }
-
-  function update() { updateControls(); renderCards(); renderBom(); renderProgress(); }
+  function update() { updateControls(); renderCards(); renderBom(); }
 
   $("copy").addEventListener("click", function () {
     var box = $("copybox"), msg = $("msg");
