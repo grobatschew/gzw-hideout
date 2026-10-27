@@ -55,17 +55,19 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.45;
+  position: relative;
   padding-block: 28px 48px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px; }
+.wrap { position: relative; max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px; }
 h1, h2, h3 { font-family: var(--font-display); font-weight: 700; margin: 0; text-wrap: balance; }
 h1 { font-size: 40px; line-height: 1; letter-spacing: 0.01em; text-transform: uppercase; }
 h2 { font-size: 26px; line-height: 1.1; letter-spacing: 0.02em; text-transform: uppercase; }
@@ -158,18 +160,48 @@ tr.money td { font-weight: 600; background: var(--bg); }
 .done { padding: 24px 14px; text-align: center; color: var(--built); font-weight: 600; }
 .copybox { width: 100%; min-height: 140px; font-family: var(--font-mono); font-size: 13px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 10px; }
 .note { color: var(--muted); font-size: 13px; }
-.io { display: flex; flex-direction: column; gap: 8px; }
-.io .copybox { min-height: 76px; resize: vertical; word-break: break-all; }
+.note a { color: var(--fg); text-decoration: underline; text-underline-offset: 2px; }
+.note a:hover { color: var(--accent); }
+.topbar { display: flex; align-items: center; min-height: 36px; margin-bottom: -22px; }
+.opts { position: absolute; top: -14px; right: 0; z-index: 20; }
+.menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 230px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px; display: flex; flex-direction: column; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
+.menu-item { font: inherit; text-align: left; background: none; border: 0; color: var(--fg); padding: 10px 12px; border-radius: 3px; cursor: pointer; }
+.menu-item:hover { background: var(--track); }
+.tabbed { display: flex; flex-direction: column; gap: 22px; }
+.tabbed .section-head { border-bottom: 0; padding-bottom: 0; }
+.tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--fg); overflow-x: auto; }
+.tab { font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: .02em; text-transform: uppercase; padding: 8px 16px; background: transparent; color: var(--muted); border: 0; border-bottom: 4px solid transparent; margin-bottom: -2px; cursor: pointer; white-space: nowrap; }
+.tab:hover { color: var(--fg); }
+.tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.check { display: inline-flex; gap: 10px; align-items: center; cursor: pointer; font-weight: 500; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+.opt-row { display: flex; flex-direction: column; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; }
+dialog { background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 20px; width: min(520px, calc(100vw - 32px)); }
+dialog::backdrop { background: rgba(0,0,0,.55); }
+.dlg { display: flex; flex-direction: column; gap: 12px; }
+.dlg .copybox { min-height: 96px; resize: vertical; word-break: break-all; }
+.err { color: var(--accent); font-size: 14px; min-height: 1.4em; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 40; background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 4px; max-width: calc(100vw - 32px); font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { .bar > span { transition: none; } }
 @media (max-width: 480px) { h1 { font-size: 34px; } }
 </style>
 
 <main class="wrap">
+  <div class="topbar">
+    <span class="eyebrow">Gray Zone Warfare</span>
+  </div>
+  <div class="opts">
+    <button class="btn" id="opt-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="opt-menu">Options &#9662;</button>
+    <div class="menu" id="opt-menu" hidden>
+      <button class="menu-item" id="opt-export" type="button">Copy export string</button>
+      <button class="menu-item" id="opt-import" type="button">Import&hellip;</button>
+    </div>
+  </div>
+
   <header class="head">
     <div class="head-title">
-      <span class="eyebrow">Gray Zone Warfare</span>
       <h1>Hideout Upgrade Tracker</h1>
-      <p class="head-sub">Set the level you have built for each station. The cards and the bill of materials show only what is left to build. Your levels are saved in this browser.</p>
+      <p class="head-sub">Set your built levels on the Station levels tab. The other tabs show only what is left to build. Everything is saved in this browser. To move status to another device, use the Options &gt; Import/Export feature.</p>
     </div>
     <div class="progress" aria-live="polite">
       <div class="progress-row"><span><b class="num" id="p-built">0</b> of <span class="num" id="p-total">0</span> levels built</span><span class="num" id="p-money"></span></div>
@@ -177,54 +209,65 @@ tr.money td { font-weight: 600; background: var(--bg); }
     </div>
   </header>
 
-  <section class="section" aria-labelledby="h-levels">
-    <div class="section-head"><h2 id="h-levels">Your station levels</h2><p>0 means not built yet.</p></div>
-    <div id="controls" style="display:flex;flex-direction:column;gap:22px"></div>
-  </section>
+  <div class="tabbed">
+    <div class="tabs" role="tablist" aria-label="Views">
+      <button class="tab" role="tab" id="tab-bom" data-tab="bom" aria-controls="panel-bom" aria-selected="true" type="button">Bill of materials</button>
+      <button class="tab" role="tab" id="tab-levels" data-tab="levels" aria-controls="panel-levels" aria-selected="false" tabindex="-1" type="button">Station levels</button>
+      <button class="tab" role="tab" id="tab-cards" data-tab="cards" aria-controls="panel-cards" aria-selected="false" tabindex="-1" type="button">By station</button>
+    </div>
 
-  <section class="section" aria-labelledby="h-cards">
-    <div class="section-head"><h2 id="h-cards">Still needed, by station</h2><p>The next level to build is marked.</p></div>
-    <div class="cards" id="cards"></div>
-  </section>
-
-  <section class="section" aria-labelledby="h-bom">
-    <div class="section-head"><h2 id="h-bom">Bill of materials</h2><p>Everything left to reach max level on every station.</p></div>
-    <div class="bom-tools">
-      <div class="bom-sum"><span class="big num" id="bom-money">$0</span><span class="note" id="bom-count"></span></div>
-      <div class="btns">
-        <button class="btn" id="copy" type="button">Copy list</button>
-        <button class="btn danger" id="reset" type="button">Reset levels</button>
+    <section class="section" role="tabpanel" id="panel-bom" aria-labelledby="tab-bom">
+      <div class="section-head"><h2>Bill of materials</h2><p>Everything left to reach max level on every station.</p></div>
+      <div class="bom-tools">
+        <div class="bom-sum"><span class="big num" id="bom-money">$0</span><span class="note" id="bom-count"></span></div>
+        <div class="btns">
+          <button class="btn" id="copy" type="button">Copy list</button>
+          <button class="btn danger" id="reset" type="button">Reset levels</button>
+        </div>
       </div>
-    </div>
-    <div class="table-wrap"><table>
-      <thead id="bom-head"><tr>
-        <th aria-sort="ascending"><button class="sort" type="button" data-sort="name">Material <span class="arr"></span></button></th>
-        <th class="n"><button class="sort" type="button" data-sort="need">Still needed <span class="arr"></span></button></th>
-        <th class="n"><button class="sort" type="button" data-sort="have">I have <span class="arr"></span></button></th>
-      </tr></thead>
-      <tbody id="bom"></tbody>
-    </table></div>
-    <textarea class="copybox" id="copybox" readonly hidden aria-label="Bill of materials as text"></textarea>
-    <p class="note" id="msg" aria-live="polite"></p>
-    <p class="note">Source: the Hideout page on the Gray Zone Warfare Fandom wiki. The wiki lists "Wood" and "Woods" separately; both are counted as Wood here. Money is counted in dollars.</p>
-  </section>
+      <div class="table-wrap"><table>
+        <thead id="bom-head"><tr>
+          <th aria-sort="ascending"><button class="sort" type="button" data-sort="name">Material <span class="arr"></span></button></th>
+          <th class="n"><button class="sort" type="button" data-sort="need">Still needed <span class="arr"></span></button></th>
+          <th class="n"><button class="sort" type="button" data-sort="have">I have <span class="arr"></span></button></th>
+        </tr></thead>
+        <tbody id="bom"></tbody>
+      </table></div>
+      <textarea class="copybox" id="copybox" readonly hidden aria-label="Bill of materials as text"></textarea>
+      <p class="note" id="msg" aria-live="polite"></p>
+      <p class="note">Source: <a href="https://gray-zone-warfare.fandom.com/wiki/Hideout" target="_blank" rel="noopener noreferrer">Hideout page on the Gray Zone Warfare wiki</a></p>
+    </section>
 
-  <section class="section" aria-labelledby="h-io">
-    <div class="section-head"><h2 id="h-io">Export and import</h2><p>Move your progress to another browser or device.</p></div>
-    <div class="io">
-      <label class="eyebrow" for="exp-out">Export string</label>
-      <textarea class="copybox" id="exp-out" readonly rows="3" spellcheck="false"></textarea>
-      <div class="btns"><button class="btn" id="exp-copy" type="button">Copy</button></div>
-    </div>
-    <div class="io">
-      <label class="eyebrow" for="imp-in">Import string</label>
-      <textarea class="copybox" id="imp-in" rows="3" spellcheck="false" placeholder="Paste an export string here"></textarea>
-      <div class="btns"><button class="btn" id="imp-btn" type="button">Import</button></div>
-    </div>
-    <p class="note" id="io-msg" aria-live="polite"></p>
-    <p class="note">Importing replaces your current station levels and "I have" counts.</p>
-  </section>
+    <section class="section" role="tabpanel" id="panel-levels" aria-labelledby="tab-levels" hidden>
+      <div class="section-head"><h2>Your station levels</h2><p>0 means not built yet.</p></div>
+      <div class="opt-row">
+        <label class="check" for="subtract"><input type="checkbox" id="subtract"> Subtract material when upgrading station</label>
+        <p class="note">When checked, picking a higher level removes that upgrade's materials from "I have". Picking a lower level gives nothing back.</p>
+      </div>
+      <div id="controls" style="display:flex;flex-direction:column;gap:22px"></div>
+    </section>
+
+    <section class="section" role="tabpanel" id="panel-cards" aria-labelledby="tab-cards" hidden>
+      <div class="section-head"><h2>Still needed, by station</h2><p>The next level to build is marked.</p></div>
+      <div class="cards" id="cards"></div>
+    </section>
+  </div>
 </main>
+
+<dialog id="io-dlg" aria-labelledby="io-title">
+  <div class="dlg">
+    <h2 id="io-title">Import progress</h2>
+    <p class="note" id="io-help"></p>
+    <label class="eyebrow" for="io-text" id="io-label">Export string</label>
+    <textarea class="copybox" id="io-text" rows="4" spellcheck="false"></textarea>
+    <p class="err" id="io-err" role="alert"></p>
+    <div class="btns">
+      <button class="btn" id="io-go" type="button">Import</button>
+      <button class="btn" id="io-cancel" type="button">Cancel</button>
+    </div>
+  </div>
+</dialog>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script>
 (function () {
@@ -348,7 +391,20 @@ tr.money td { font-weight: 600; background: var(--bg); }
           b.setAttribute("data-s", s.id);
           b.setAttribute("data-l", lv);
           b.setAttribute("aria-label", s.name + " level " + lv);
-          b.addEventListener("click", function () { state[s.id] = lv; save(); update(); });
+          b.addEventListener("click", function () {
+            var old = state[s.id];
+            if (subtract && lv > old) {
+              for (var L = old; L < lv; L++) {
+                (function (lvl) {
+                  Object.keys(lvl).forEach(function (k) {
+                    if (k !== M) have[k] = Math.max(0, (have[k] || 0) - lvl[k]);
+                  });
+                })(s.levels[L]);
+              }
+              saveHave();
+            }
+            state[s.id] = lv; save(); update();
+          });
           seg.appendChild(b);
         })(i);
       }
@@ -448,38 +504,86 @@ tr.money td { font-weight: 600; background: var(--bg); }
     saveHave();
     if (!fromInput) row.querySelector("input").value = v;
     refreshOk();
-    renderExport();
   }
 
   /* export / import */
-  var PREFIX = "GZW1:";
+  var PREFIX = "GZW1:", SUB_KEY = "gzw-hideout-subtract-v1";
+  var subtract = false;
   function buildExport() {
-    var s = {}, h = {};
-    all.forEach(function (st) { s[st.id] = state[st.id]; });
+    var st = {}, h = {};
+    all.forEach(function (x) { st[x.id] = state[x.id]; });
     Object.keys(have).forEach(function (k) { if (have[k] > 0) h[k] = have[k]; });
-    return PREFIX + btoa(JSON.stringify({ s: s, h: h }));
+    return PREFIX + btoa(JSON.stringify({ s: st, h: h }));
   }
-  function renderExport() { $("exp-out").value = buildExport(); }
-  function ioMsg(t) { $("io-msg").textContent = t; }
 
-  $("exp-copy").addEventListener("click", function () {
-    var box = $("exp-out");
-    renderExport();
-    function fallback() { box.focus(); box.select(); ioMsg("Copy was blocked here. The string is selected, press Ctrl+C or Cmd+C."); }
+  var toastTimer = null;
+  function toast(t) {
+    var el = $("toast");
+    el.textContent = t; el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.hidden = true; }, 3200);
+  }
+
+  /* subtract option */
+  var subEl = $("subtract");
+  try { subtract = localStorage.getItem(SUB_KEY) === "1"; } catch (e) {}
+  subEl.checked = subtract;
+  subEl.addEventListener("change", function () {
+    subtract = subEl.checked;
+    try { localStorage.setItem(SUB_KEY, subtract ? "1" : "0"); } catch (e) {}
+  });
+
+  /* options menu */
+  var menu = $("opt-menu"), optBtn = $("opt-btn");
+  function menuOpen(on) { menu.hidden = !on; optBtn.setAttribute("aria-expanded", on ? "true" : "false"); }
+  optBtn.addEventListener("click", function (e) { e.stopPropagation(); menuOpen(menu.hidden); });
+  document.addEventListener("click", function (e) { if (!menu.hidden && !menu.contains(e.target)) menuOpen(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !menu.hidden) { menuOpen(false); optBtn.focus(); } });
+
+  /* dialog */
+  var dlg = $("io-dlg"), mode = "import";
+  function openDlg(m, text) {
+    mode = m;
+    var imp = m === "import";
+    $("io-title").textContent = imp ? "Import progress" : "Copy your export string";
+    $("io-help").textContent = imp
+      ? "Paste an export string. Importing replaces your current station levels and \"I have\" counts."
+      : "Your browser blocked copying. Select the string below and copy it yourself.";
+    $("io-label").textContent = imp ? "Import string" : "Export string";
+    var ta = $("io-text");
+    ta.value = imp ? "" : text;
+    ta.readOnly = !imp;
+    $("io-err").textContent = "";
+    $("io-go").hidden = !imp;
+    $("io-cancel").textContent = imp ? "Cancel" : "Close";
+    if (dlg.showModal) { try { dlg.showModal(); } catch (e) { dlg.setAttribute("open", ""); } } else dlg.setAttribute("open", "");
+    ta.focus();
+    if (!imp) ta.select();
+  }
+  function closeDlg() { if (dlg.close) { try { dlg.close(); } catch (e) { dlg.removeAttribute("open"); } } else dlg.removeAttribute("open"); }
+  $("io-cancel").addEventListener("click", closeDlg);
+
+  $("opt-import").addEventListener("click", function () { menuOpen(false); openDlg("import"); });
+  $("opt-export").addEventListener("click", function () {
+    menuOpen(false);
+    var text = buildExport();
+    function fallback() { openDlg("export", text); }
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(box.value).then(function () { ioMsg("Export string copied."); }, fallback);
+        navigator.clipboard.writeText(text).then(function () { toast("Export string copied."); }, fallback);
       } else fallback();
     } catch (e) { fallback(); }
   });
 
-  $("imp-btn").addEventListener("click", function () {
-    var raw = $("imp-in").value.replace(/\s+/g, "");
-    if (!raw) { ioMsg("Paste an export string first."); return; }
+  $("io-go").addEventListener("click", function () {
+    if (mode !== "import") return;
+    var err = $("io-err");
+    var raw = $("io-text").value.replace(/\s+/g, "");
+    if (!raw) { err.textContent = "Paste an export string first."; return; }
     if (raw.indexOf(PREFIX) === 0) raw = raw.slice(PREFIX.length);
     var d;
-    try { d = JSON.parse(atob(raw)); } catch (e) { ioMsg("That string could not be read. Copy the whole export string and try again."); return; }
-    if (!d || typeof d !== "object" || typeof d.s !== "object" || !d.s) { ioMsg("That string has no station data. Copy the whole export string and try again."); return; }
+    try { d = JSON.parse(atob(raw)); } catch (e) { err.textContent = "That string could not be read. Copy the whole export string and try again."; return; }
+    if (!d || typeof d !== "object" || !d.s || typeof d.s !== "object") { err.textContent = "That string has no station data. Copy the whole export string and try again."; return; }
     var lv = 0, mats = 0, h = (d.h && typeof d.h === "object") ? d.h : {};
     all.forEach(function (st) {
       var v = d.s[st.id];
@@ -491,9 +595,33 @@ tr.money td { font-weight: 600; background: var(--bg); }
       if (typeof h[k] === "number" && h[k] > 0) { have[k] = Math.floor(h[k]); mats++; }
     });
     save(); saveHave(); update();
-    $("imp-in").value = "";
-    ioMsg("Imported " + lv + " built levels across " + all.length + " stations and " + mats + " material counts.");
+    closeDlg();
+    toast("Imported " + lv + " built levels and " + mats + " material counts.");
   });
+
+  /* tabs */
+  var tabBtns = [].slice.call(document.querySelectorAll(".tab"));
+  function selectTab(name, focus) {
+    tabBtns.forEach(function (t) {
+      var on = t.getAttribute("data-tab") === name;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.tabIndex = on ? 0 : -1;
+      $("panel-" + t.getAttribute("data-tab")).hidden = !on;
+      if (on && focus) t.focus();
+    });
+  }
+  tabBtns.forEach(function (t, i) {
+    t.addEventListener("click", function () { selectTab(t.getAttribute("data-tab"), false); });
+    t.addEventListener("keydown", function (e) {
+      var j = -1;
+      if (e.key === "ArrowRight") j = (i + 1) % tabBtns.length;
+      else if (e.key === "ArrowLeft") j = (i + tabBtns.length - 1) % tabBtns.length;
+      else if (e.key === "Home") j = 0;
+      else if (e.key === "End") j = tabBtns.length - 1;
+      if (j >= 0) { e.preventDefault(); selectTab(tabBtns[j].getAttribute("data-tab"), true); }
+    });
+  });
+
   $("bom-head").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-sort]");
     if (!b) return;
@@ -557,7 +685,7 @@ tr.money td { font-weight: 600; background: var(--bg); }
     $("p-money").textContent = money(rem[M] || 0) + " left";
   }
 
-  function update() { updateControls(); renderCards(); renderBom(); renderProgress(); renderExport(); }
+  function update() { updateControls(); renderCards(); renderBom(); renderProgress(); }
 
   $("copy").addEventListener("click", function () {
     var box = $("copybox"), msg = $("msg");
