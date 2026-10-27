@@ -158,6 +158,8 @@ tr.money td { font-weight: 600; background: var(--bg); }
 .done { padding: 24px 14px; text-align: center; color: var(--built); font-weight: 600; }
 .copybox { width: 100%; min-height: 140px; font-family: var(--font-mono); font-size: 13px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 10px; }
 .note { color: var(--muted); font-size: 13px; }
+.io { display: flex; flex-direction: column; gap: 8px; }
+.io .copybox { min-height: 76px; resize: vertical; word-break: break-all; }
 @media (prefers-reduced-motion: reduce) { .bar > span { transition: none; } }
 @media (max-width: 480px) { h1 { font-size: 34px; } }
 </style>
@@ -205,6 +207,22 @@ tr.money td { font-weight: 600; background: var(--bg); }
     <textarea class="copybox" id="copybox" readonly hidden aria-label="Bill of materials as text"></textarea>
     <p class="note" id="msg" aria-live="polite"></p>
     <p class="note">Source: the Hideout page on the Gray Zone Warfare Fandom wiki. The wiki lists "Wood" and "Woods" separately; both are counted as Wood here. Money is counted in dollars.</p>
+  </section>
+
+  <section class="section" aria-labelledby="h-io">
+    <div class="section-head"><h2 id="h-io">Export and import</h2><p>Move your progress to another browser or device.</p></div>
+    <div class="io">
+      <label class="eyebrow" for="exp-out">Export string</label>
+      <textarea class="copybox" id="exp-out" readonly rows="3" spellcheck="false"></textarea>
+      <div class="btns"><button class="btn" id="exp-copy" type="button">Copy</button></div>
+    </div>
+    <div class="io">
+      <label class="eyebrow" for="imp-in">Import string</label>
+      <textarea class="copybox" id="imp-in" rows="3" spellcheck="false" placeholder="Paste an export string here"></textarea>
+      <div class="btns"><button class="btn" id="imp-btn" type="button">Import</button></div>
+    </div>
+    <p class="note" id="io-msg" aria-live="polite"></p>
+    <p class="note">Importing replaces your current station levels and "I have" counts.</p>
   </section>
 </main>
 
@@ -430,7 +448,52 @@ tr.money td { font-weight: 600; background: var(--bg); }
     saveHave();
     if (!fromInput) row.querySelector("input").value = v;
     refreshOk();
+    renderExport();
   }
+
+  /* export / import */
+  var PREFIX = "GZW1:";
+  function buildExport() {
+    var s = {}, h = {};
+    all.forEach(function (st) { s[st.id] = state[st.id]; });
+    Object.keys(have).forEach(function (k) { if (have[k] > 0) h[k] = have[k]; });
+    return PREFIX + btoa(JSON.stringify({ s: s, h: h }));
+  }
+  function renderExport() { $("exp-out").value = buildExport(); }
+  function ioMsg(t) { $("io-msg").textContent = t; }
+
+  $("exp-copy").addEventListener("click", function () {
+    var box = $("exp-out");
+    renderExport();
+    function fallback() { box.focus(); box.select(); ioMsg("Copy was blocked here. The string is selected, press Ctrl+C or Cmd+C."); }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(box.value).then(function () { ioMsg("Export string copied."); }, fallback);
+      } else fallback();
+    } catch (e) { fallback(); }
+  });
+
+  $("imp-btn").addEventListener("click", function () {
+    var raw = $("imp-in").value.replace(/\s+/g, "");
+    if (!raw) { ioMsg("Paste an export string first."); return; }
+    if (raw.indexOf(PREFIX) === 0) raw = raw.slice(PREFIX.length);
+    var d;
+    try { d = JSON.parse(atob(raw)); } catch (e) { ioMsg("That string could not be read. Copy the whole export string and try again."); return; }
+    if (!d || typeof d !== "object" || typeof d.s !== "object" || !d.s) { ioMsg("That string has no station data. Copy the whole export string and try again."); return; }
+    var lv = 0, mats = 0, h = (d.h && typeof d.h === "object") ? d.h : {};
+    all.forEach(function (st) {
+      var v = d.s[st.id];
+      state[st.id] = (typeof v === "number" && v >= 0 && v <= st.levels.length) ? Math.floor(v) : 0;
+      lv += state[st.id];
+    });
+    have = {};
+    Object.keys(h).forEach(function (k) {
+      if (typeof h[k] === "number" && h[k] > 0) { have[k] = Math.floor(h[k]); mats++; }
+    });
+    save(); saveHave(); update();
+    $("imp-in").value = "";
+    ioMsg("Imported " + lv + " built levels across " + all.length + " stations and " + mats + " material counts.");
+  });
   $("bom-head").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-sort]");
     if (!b) return;
@@ -494,7 +557,7 @@ tr.money td { font-weight: 600; background: var(--bg); }
     $("p-money").textContent = money(rem[M] || 0) + " left";
   }
 
-  function update() { updateControls(); renderCards(); renderBom(); renderProgress(); }
+  function update() { updateControls(); renderCards(); renderBom(); renderProgress(); renderExport(); }
 
   $("copy").addEventListener("click", function () {
     var box = $("copybox"), msg = $("msg");
