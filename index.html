@@ -162,6 +162,12 @@ tr.money td { font-weight: 600; background: var(--bg); }
 .note { color: var(--muted); font-size: 13px; }
 .note a { color: var(--fg); text-decoration: underline; text-underline-offset: 2px; }
 .note a:hover { color: var(--accent); }
+.chars { display: flex; align-items: center; gap: 10px; }
+.chars .seg { flex: 1; min-width: 0; }
+.chars .seg button { flex: 1 1 auto; min-width: 36px; max-width: 11em; padding: 0 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field input { height: 36px; font: inherit; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 3px; padding: 0 10px; }
+.field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .topbar { display: flex; align-items: center; min-height: 36px; margin-bottom: -22px; }
 .opts { position: absolute; top: -14px; right: 0; z-index: 20; }
 .menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 230px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px; display: flex; flex-direction: column; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
@@ -169,12 +175,15 @@ tr.money td { font-weight: 600; background: var(--bg); }
 .menu-item:hover { background: var(--track); }
 .tabbed { display: flex; flex-direction: column; gap: 22px; }
 .tabbed .section-head { border-bottom: 0; padding-bottom: 0; }
-.tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--fg); overflow-x: auto; }
-.tab { font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: .02em; text-transform: uppercase; padding: 8px 16px; background: transparent; color: var(--muted); border: 0; border-bottom: 4px solid transparent; margin-bottom: -2px; cursor: pointer; white-space: nowrap; }
+.tabs { display: flex; gap: 4px; box-shadow: inset 0 -2px 0 var(--fg); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: .02em; text-transform: uppercase; padding: 8px 16px; background: transparent; color: var(--muted); border: 0; border-bottom: 4px solid transparent; cursor: pointer; white-space: nowrap; }
 .tab:hover { color: var(--fg); }
 .tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
 .check { display: inline-flex; gap: 10px; align-items: center; cursor: pointer; font-weight: 500; }
 .check input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+.level-tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.level-tools .opt-row { flex: 1 1 320px; }
 .opt-row { display: flex; flex-direction: column; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; }
 dialog { background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 20px; width: min(520px, calc(100vw - 32px)); }
 dialog::backdrop { background: rgba(0,0,0,.55); }
@@ -183,7 +192,7 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
 .err { color: var(--accent); font-size: 14px; min-height: 1.4em; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 40; background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 4px; max-width: calc(100vw - 32px); font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { .bar > span { transition: none; } }
-@media (max-width: 480px) { h1 { font-size: 34px; } }
+@media (max-width: 480px) { h1 { font-size: 34px; } .tab { font-size: 16px; padding: 8px 10px; } }
 </style>
 
 <main class="wrap">
@@ -193,6 +202,7 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
   <div class="opts">
     <button class="btn" id="opt-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="opt-menu">Options &#9662;</button>
     <div class="menu" id="opt-menu" hidden>
+      <button class="menu-item" id="opt-names" type="button">Character names&hellip;</button>
       <button class="menu-item" id="opt-export" type="button">Copy export string</button>
       <button class="menu-item" id="opt-import" type="button">Import&hellip;</button>
     </div>
@@ -201,9 +211,18 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
   <header class="head">
     <div class="head-title">
       <h1>Hideout Upgrade Tracker</h1>
-      <p class="head-sub">Set your built levels on the Station levels tab. The other tabs show only what is left to build. Everything is saved in this browser. To move status to another device, use the Options &gt; Import/Export feature.</p>
+      <p class="head-sub">Set your built levels on the Station levels tab. The other tabs show only what is left to build. Each character keeps its own levels and materials. Everything is saved in this browser. To move status to another device, use the Options &gt; Import/Export feature.</p>
     </div>
     <div class="progress" aria-live="polite">
+      <div class="chars" role="group" aria-label="Character">
+        <span class="eyebrow">Character:</span>
+        <div class="seg" id="chars">
+          <button type="button" data-i="0">1</button>
+          <button type="button" data-i="1">2</button>
+          <button type="button" data-i="2">3</button>
+          <button type="button" data-i="3">4</button>
+        </div>
+      </div>
       <div class="progress-row"><span><b class="num" id="p-built">0</b> of <span class="num" id="p-total">0</span> levels built</span><span class="num" id="p-money"></span></div>
       <div class="bar" role="progressbar" aria-label="Hideout progress" aria-valuemin="0" aria-valuemax="100" id="p-bar-wrap"><span id="p-bar"></span></div>
     </div>
@@ -222,7 +241,6 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
         <div class="bom-sum"><span class="big num" id="bom-money">$0</span><span class="note" id="bom-count"></span></div>
         <div class="btns">
           <button class="btn" id="copy" type="button">Copy list</button>
-          <button class="btn danger" id="reset" type="button">Reset levels</button>
         </div>
       </div>
       <div class="table-wrap"><table>
@@ -241,9 +259,12 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
 
     <section class="section" role="tabpanel" id="panel-levels" aria-labelledby="tab-levels" hidden>
       <div class="section-head"><h2>Your station levels</h2><p>0 means not built yet.</p></div>
+      <div class="level-tools">
       <div class="opt-row">
         <label class="check" for="subtract"><input type="checkbox" id="subtract"> Subtract material when upgrading station</label>
         <p class="note">When checked, picking a higher level removes that upgrade's materials from "I have". Picking a lower level gives nothing back.</p>
+      </div>
+      <button class="btn danger" id="reset" type="button">Reset levels</button>
       </div>
       <div id="controls" style="display:flex;flex-direction:column;gap:22px"></div>
     </section>
@@ -265,6 +286,20 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
     <div class="btns">
       <button class="btn" id="io-go" type="button">Import</button>
       <button class="btn" id="io-cancel" type="button">Cancel</button>
+    </div>
+  </div>
+</dialog>
+<dialog id="names-dlg" aria-labelledby="names-title">
+  <div class="dlg">
+    <h2 id="names-title">Character names</h2>
+    <p class="note">Leave a name empty to show the character's number instead.</p>
+    <div class="field"><label class="eyebrow" for="name-1">Character 1</label><input type="text" id="name-1" maxlength="16" placeholder="1" autocomplete="off"></div>
+    <div class="field"><label class="eyebrow" for="name-2">Character 2</label><input type="text" id="name-2" maxlength="16" placeholder="2" autocomplete="off"></div>
+    <div class="field"><label class="eyebrow" for="name-3">Character 3</label><input type="text" id="name-3" maxlength="16" placeholder="3" autocomplete="off"></div>
+    <div class="field"><label class="eyebrow" for="name-4">Character 4</label><input type="text" id="name-4" maxlength="16" placeholder="4" autocomplete="off"></div>
+    <div class="btns">
+      <button class="btn" id="names-save" type="button">Save</button>
+      <button class="btn" id="names-cancel" type="button">Cancel</button>
     </div>
   </div>
 </dialog>
@@ -336,31 +371,53 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
 
   var all = [];
   ROOMS.forEach(function (r) { r.stations.forEach(function (s) { s.room = r.name; all.push(s); }); });
+  /* four characters, each with its own station levels (s) and owned materials (h) */
+  var NCH = 4, STORE = "gzw-hideout-chars-v2", HAVE_KEY = "gzw-hideout-have-v1";
+  var chars = [], names = ["", "", "", ""], cur = 0;
   var state = {}, have = {};
-  all.forEach(function (s) { state[s.id] = 0; });
-
-  function load() {
-    try {
-      var raw = localStorage.getItem(KEY);
-      if (!raw) return;
-      var d = JSON.parse(raw);
-      all.forEach(function (s) {
-        var v = d && d[s.id];
-        if (typeof v === "number" && v >= 0 && v <= s.levels.length) state[s.id] = Math.floor(v);
-      });
-    } catch (e) {}
+  var KNOWN = {};
+  ROOMS.forEach(function (r) { r.stations.forEach(function (st) { st.levels.forEach(function (l) {
+    Object.keys(l).forEach(function (k) { if (k !== M) KNOWN[k] = 1; });
+  }); }); });
+  function blankChar() { var o = { s: {}, h: {} }; all.forEach(function (x) { o.s[x.id] = 0; }); return o; }
+  function cleanChar(c) {
+    var out = blankChar();
+    if (!c || typeof c !== "object") return out;
+    all.forEach(function (x) {
+      var v = c.s && c.s[x.id];
+      if (typeof v === "number" && v >= 0 && v <= x.levels.length) out.s[x.id] = Math.floor(v);
+    });
+    if (c.h && typeof c.h === "object") Object.keys(c.h).forEach(function (k) {
+      var v = c.h[k];
+      if (Object.prototype.hasOwnProperty.call(KNOWN, k) && typeof v === "number" && v > 0 && isFinite(v)) out.h[k] = Math.floor(v);
+    });
+    return out;
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
-  var HAVE_KEY = "gzw-hideout-have-v1";
-  function loadHave() {
-    try {
-      var d = JSON.parse(localStorage.getItem(HAVE_KEY) || "{}");
-      Object.keys(d).forEach(function (k) {
-        if (typeof d[k] === "number" && d[k] > 0) have[k] = Math.floor(d[k]);
-      });
-    } catch (e) {}
+  function cleanName(n) { return typeof n === "string" ? n.trim().slice(0, 16) : ""; }
+  function useChar(i) { cur = i; state = chars[i].s; have = chars[i].h; }
+  function persist() {
+    try { localStorage.setItem(STORE, JSON.stringify({ v: 2, cur: cur, names: names, chars: chars })); } catch (e) {}
   }
-  function saveHave() { try { localStorage.setItem(HAVE_KEY, JSON.stringify(have)); } catch (e) {} }
+  function save() { persist(); }
+  function saveHave() { persist(); }
+  function loadAll() {
+    var i;
+    try {
+      var raw = localStorage.getItem(STORE);
+      if (raw) {
+        var d = JSON.parse(raw);
+        for (i = 0; i < NCH; i++) { chars[i] = cleanChar(d.chars && d.chars[i]); names[i] = cleanName(d.names && d.names[i]); }
+        useChar(typeof d.cur === "number" && d.cur >= 0 && d.cur < NCH ? Math.floor(d.cur) : 0);
+        return;
+      }
+    } catch (e) {}
+    for (i = 0; i < NCH; i++) chars[i] = blankChar();
+    /* carry over progress saved before characters existed into character 1 */
+    try {
+      chars[0] = cleanChar({ s: JSON.parse(localStorage.getItem(KEY) || "null"), h: JSON.parse(localStorage.getItem(HAVE_KEY) || "null") });
+    } catch (e) {}
+    useChar(0);
+  }
 
   function money(n) { return "$" + n.toLocaleString("en-US"); }
   function $(id) { return document.getElementById(id); }
@@ -510,13 +567,25 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
   }
 
   /* export / import */
-  var PREFIX = "GZW1:", SUB_KEY = "gzw-hideout-subtract-v1";
+  var PREFIX2 = "GZW2:", PREFIX1 = "GZW1:", SUB_KEY = "gzw-hideout-subtract-v1";
   var subtract = false;
+  function b64enc(str) {
+    var bytes = new TextEncoder().encode(str), bin = "";
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+  function b64dec(b) {
+    var bin = atob(b), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
   function buildExport() {
-    var st = {}, h = {};
-    all.forEach(function (x) { st[x.id] = state[x.id]; });
-    Object.keys(have).forEach(function (k) { if (have[k] > 0) h[k] = have[k]; });
-    return PREFIX + btoa(JSON.stringify({ s: st, h: h }));
+    var out = { a: cur, n: names.slice(), c: chars.map(function (c) {
+      var h = {};
+      Object.keys(c.h).forEach(function (k) { if (c.h[k] > 0) h[k] = c.h[k]; });
+      return { s: c.s, h: h };
+    }) };
+    return PREFIX2 + b64enc(JSON.stringify(out));
   }
 
   var toastTimer = null;
@@ -550,7 +619,7 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
     var imp = m === "import";
     $("io-title").textContent = imp ? "Import progress" : "Copy your export string";
     $("io-help").textContent = imp
-      ? "Paste an export string. Importing replaces your current station levels and \"I have\" counts."
+      ? "Paste an export string. Importing replaces the levels, \"I have\" counts and names of all four characters. An older single-character string replaces only the selected character."
       : "Your browser blocked copying. Select the string below and copy it yourself.";
     $("io-label").textContent = imp ? "Import string" : "Export string";
     var ta = $("io-text");
@@ -583,24 +652,73 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
     var err = $("io-err");
     var raw = $("io-text").value.replace(/\s+/g, "");
     if (!raw) { err.textContent = "Paste an export string first."; return; }
-    if (raw.indexOf(PREFIX) === 0) raw = raw.slice(PREFIX.length);
+    if (raw.indexOf(PREFIX2) === 0) raw = raw.slice(PREFIX2.length);
+    else if (raw.indexOf(PREFIX1) === 0) raw = raw.slice(PREFIX1.length);
     var d;
-    try { d = JSON.parse(atob(raw)); } catch (e) { err.textContent = "That string could not be read. Copy the whole export string and try again."; return; }
-    if (!d || typeof d !== "object" || !d.s || typeof d.s !== "object") { err.textContent = "That string has no station data. Copy the whole export string and try again."; return; }
-    var lv = 0, mats = 0, h = (d.h && typeof d.h === "object") ? d.h : {};
-    all.forEach(function (st) {
-      var v = d.s[st.id];
-      state[st.id] = (typeof v === "number" && v >= 0 && v <= st.levels.length) ? Math.floor(v) : 0;
-      lv += state[st.id];
-    });
-    have = {};
-    Object.keys(h).forEach(function (k) {
-      if (typeof h[k] === "number" && h[k] > 0) { have[k] = Math.floor(h[k]); mats++; }
-    });
-    save(); saveHave(); update();
+    try { d = JSON.parse(b64dec(raw)); } catch (e) { err.textContent = "That string could not be read. Copy the whole export string and try again."; return; }
+    if (!d || typeof d !== "object") { err.textContent = "That string could not be read. Copy the whole export string and try again."; return; }
+    var msgText, i;
+    if (Array.isArray(d.c)) {
+      var built = 0;
+      for (i = 0; i < NCH; i++) {
+        chars[i] = cleanChar(d.c[i]);
+        names[i] = cleanName(d.n && d.n[i]);
+        all.forEach(function (x) { built += chars[i].s[x.id]; });
+      }
+      useChar(typeof d.a === "number" && d.a >= 0 && d.a < NCH ? Math.floor(d.a) : 0);
+      msgText = "Imported all four characters (" + built + " built levels in total).";
+    } else if (d.s && typeof d.s === "object") {
+      chars[cur] = cleanChar({ s: d.s, h: d.h });
+      useChar(cur);
+      var lv = 0, mats = Object.keys(have).length;
+      all.forEach(function (x) { lv += state[x.id]; });
+      msgText = "Imported into " + charTitle(cur) + ": " + lv + " built levels and " + mats + " material counts.";
+    } else {
+      err.textContent = "That string has no station data. Copy the whole export string and try again."; return;
+    }
+    persist(); renderChars(); update();
     closeDlg();
-    toast("Imported " + lv + " built levels and " + mats + " material counts.");
+    toast(msgText);
   });
+
+  /* characters */
+  function charLabel(i) { return names[i] || String(i + 1); }
+  function charTitle(i) { return names[i] || "character " + (i + 1); }
+  function renderChars() {
+    var bs = $("chars").querySelectorAll("button");
+    for (var i = 0; i < bs.length; i++) {
+      bs[i].textContent = charLabel(i);
+      bs[i].title = "Character " + (i + 1) + (names[i] ? ": " + names[i] : "");
+      bs[i].setAttribute("aria-label", "Character " + (i + 1) + (names[i] ? ", " + names[i] : ""));
+      bs[i].setAttribute("aria-pressed", i === cur ? "true" : "false");
+    }
+  }
+  function setChar(i) {
+    if (i === cur) return;
+    disarmReset();
+    useChar(i);
+    persist(); renderChars(); update();
+  }
+  [].slice.call($("chars").querySelectorAll("button")).forEach(function (b) {
+    b.addEventListener("click", function () { setChar(+b.getAttribute("data-i")); });
+  });
+
+  var namesDlg = $("names-dlg");
+  function openNames() {
+    for (var i = 0; i < NCH; i++) $("name-" + (i + 1)).value = names[i];
+    if (namesDlg.showModal) { try { namesDlg.showModal(); } catch (e) { namesDlg.setAttribute("open", ""); } } else namesDlg.setAttribute("open", "");
+    $("name-1").focus();
+  }
+  function closeNames() { if (namesDlg.close) { try { namesDlg.close(); } catch (e) { namesDlg.removeAttribute("open"); } } else namesDlg.removeAttribute("open"); }
+  function saveNames() {
+    for (var i = 0; i < NCH; i++) names[i] = cleanName($("name-" + (i + 1)).value);
+    persist(); renderChars(); closeNames();
+    toast("Character names saved.");
+  }
+  $("opt-names").addEventListener("click", function () { menuOpen(false); openNames(); });
+  $("names-save").addEventListener("click", saveNames);
+  $("names-cancel").addEventListener("click", closeNames);
+  namesDlg.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); saveNames(); } });
 
   /* tabs */
   var tabBtns = [].slice.call(document.querySelectorAll(".tab"));
@@ -715,6 +833,11 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
   });
 
   var armed = false, armTimer = null;
+  function disarmReset() {
+    clearTimeout(armTimer);
+    armed = false;
+    $("reset").textContent = "Reset levels";
+  }
   $("reset").addEventListener("click", function () {
     var b = $("reset");
     if (!armed) {
@@ -728,11 +851,11 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
     b.textContent = "Reset levels";
     all.forEach(function (s) { state[s.id] = 0; });
     save(); update();
-    $("msg").textContent = "All levels set back to 0.";
+    toast("Levels for " + charTitle(cur) + " set back to 0.");
   });
 
-  load();
-  loadHave();
+  loadAll();
+  renderChars();
   update();
 })();
 </script>
