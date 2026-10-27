@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0}</style>
+<title>Hideout Upgrade Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: a field-ledger. Level selectors up top, per-station requirements in a card grid, one bill of materials at the bottom. */
+:root {
+  --bg: #e9ebe4;
+  --surface: #f5f6f1;
+  --fg: #20261c;
+  --muted: #5d665a;
+  --line: #c9cdc0;
+  --track: #d6d9cc;
+  --accent: #b4561b;
+  --accent-fg: #ffffff;
+  --built: #3d6b3a;
+  --built-bg: #dde7d6;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151812;
+    --surface: #1e231a;
+    --fg: #e4e7dc;
+    --muted: #9aa390;
+    --line: #323929;
+    --track: #2b3125;
+    --accent: #e08a4a;
+    --accent-fg: #1a1208;
+    --built: #8fbf7f;
+    --built-bg: #27331f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151812;
+  --surface: #1e231a;
+  --fg: #e4e7dc;
+  --muted: #9aa390;
+  --line: #323929;
+  --track: #2b3125;
+  --accent: #e08a4a;
+  --accent-fg: #1a1208;
+  --built: #8fbf7f;
+  --built-bg: #27331f;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+  padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; margin: 0; text-wrap: balance; }
+h1 { font-size: 40px; line-height: 1; letter-spacing: 0.01em; text-transform: uppercase; }
+h2 { font-size: 26px; line-height: 1.1; letter-spacing: 0.02em; text-transform: uppercase; }
+h3 { font-size: 20px; line-height: 1.15; letter-spacing: 0.02em; text-transform: uppercase; }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+p { margin: 0; }
+
+/* header */
+.head { display: flex; flex-wrap: wrap; gap: 20px 40px; align-items: end; justify-content: space-between; }
+.head-title { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.head-sub { color: var(--muted); max-width: 52ch; }
+.progress { flex: 1 1 320px; max-width: 460px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.progress-row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+.bar { height: 10px; background: var(--track); border-radius: 2px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--built); width: 0; transition: width .25s ease; }
+
+/* sections */
+.section { display: flex; flex-direction: column; gap: 18px; }
+.section-head { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: baseline; justify-content: space-between; border-bottom: 2px solid var(--fg); padding-bottom: 8px; }
+.section-head p { color: var(--muted); font-size: 14px; }
+
+/* controls */
+.room { display: flex; flex-direction: column; gap: 10px; }
+.room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 10px; }
+.ctl { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ctl-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ctl-name { font-weight: 600; }
+.ctl-count { font-size: 12px; color: var(--muted); }
+.seg { display: flex; gap: 4px; }
+.seg button {
+  flex: 1 1 0; min-width: 0; height: 36px; border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+  font-family: var(--font-mono); font-weight: 500; font-size: 14px; border-radius: 3px; cursor: pointer;
+}
+.seg button:hover { border-color: var(--muted); }
+.seg button.below { background: var(--built-bg); color: var(--built); border-color: transparent; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* station cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 14px; align-items: start; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
+.card-head > div { min-width: 0; }
+.tag { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px; border-radius: 2px; white-space: nowrap; }
+.tag.maxed { background: var(--built-bg); color: var(--built); }
+.tag.prog { background: var(--track); color: var(--muted); }
+.lvls { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.lvl { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; align-items: start; }
+.lvl-label { font-family: var(--font-mono); font-weight: 500; font-size: 13px; color: var(--muted); padding-top: 2px; }
+.lvl.next .lvl-label { color: var(--accent); }
+.lvl.built { color: var(--muted); }
+.lvl.built .built-note { color: var(--built); font-size: 13px; padding-top: 1px; }
+.next-tag { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: var(--accent); display: block; margin-bottom: 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { display: inline-flex; gap: 6px; align-items: baseline; border: 1px solid var(--line); background: var(--bg); border-radius: 3px; padding: 2px 7px; font-size: 13px; }
+.chip b { font-family: var(--font-mono); font-weight: 500; }
+.chip.money { border-color: var(--accent); }
+.lvl.later .chip { color: var(--muted); }
+
+/* bill of materials */
+.bom-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.bom-sum { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: baseline; }
+.bom-sum .big { font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 14px; font-weight: 500; padding: 8px 14px; border-radius: 3px; border: 1px solid var(--fg); background: transparent; color: var(--fg); cursor: pointer; }
+.btn:hover { background: var(--fg); color: var(--bg); }
+.btn.danger { border-color: var(--accent); color: var(--accent); }
+.btn.danger:hover { background: var(--accent); color: var(--accent-fg); }
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; min-width: 340px; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+td.n, th.n { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+table { min-width: 400px; }
+.sort { font: inherit; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: var(--muted); background: none; border: 0; padding: 4px 0; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+th.n .sort { justify-content: flex-end; }
+.sort:hover, th[aria-sort="ascending"] .sort, th[aria-sort="descending"] .sort { color: var(--fg); }
+.arr { font-size: 10px; display: inline-block; width: 10px; }
+.stepper { display: inline-flex; align-items: center; gap: 4px; }
+.step { width: 32px; height: 32px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 3px; font-family: var(--font-mono); font-size: 18px; line-height: 1; cursor: pointer; padding: 0; }
+.step:hover { border-color: var(--muted); }
+.stepper input { width: 84px; height: 32px; text-align: center; font-family: var(--font-mono); font-size: 14px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; -moz-appearance: textfield; appearance: textfield; }
+.stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+tr.ok td.need { color: var(--built); }
+tr.ok td.need::before { content: "\2713\00a0"; }
+tr.money td { font-weight: 600; background: var(--bg); }
+.done { padding: 24px 14px; text-align: center; color: var(--built); font-weight: 600; }
+.copybox { width: 100%; min-height: 140px; font-family: var(--font-mono); font-size: 13px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 10px; }
+.note { color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .bar > span { transition: none; } }
+@media (max-width: 480px) { h1 { font-size: 34px; } }
+</style>
+
+<main class="wrap">
+  <header class="head">
+    <div class="head-title">
+      <span class="eyebrow">Gray Zone Warfare</span>
+      <h1>Hideout Upgrade Tracker</h1>
+      <p class="head-sub">Set the level you have built for each station. The cards and the bill of materials show only what is left to build. Your levels are saved in this browser.</p>
+    </div>
+    <div class="progress" aria-live="polite">
+      <div class="progress-row"><span><b class="num" id="p-built">0</b> of <span class="num" id="p-total">0</span> levels built</span><span class="num" id="p-money"></span></div>
+      <div class="bar" role="progressbar" aria-label="Hideout progress" aria-valuemin="0" aria-valuemax="100" id="p-bar-wrap"><span id="p-bar"></span></div>
+    </div>
+  </header>
+
+  <section class="section" aria-labelledby="h-levels">
+    <div class="section-head"><h2 id="h-levels">Your station levels</h2><p>0 means not built yet.</p></div>
+    <div id="controls" style="display:flex;flex-direction:column;gap:22px"></div>
+  </section>
+
+  <section class="section" aria-labelledby="h-cards">
+    <div class="section-head"><h2 id="h-cards">Still needed, by station</h2><p>The next level to build is marked.</p></div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section class="section" aria-labelledby="h-bom">
+    <div class="section-head"><h2 id="h-bom">Bill of materials</h2><p>Everything left to reach max level on every station.</p></div>
+    <div class="bom-tools">
+      <div class="bom-sum"><span class="big num" id="bom-money">$0</span><span class="note" id="bom-count"></span></div>
+      <div class="btns">
+        <button class="btn" id="copy" type="button">Copy list</button>
+        <button class="btn danger" id="reset" type="button">Reset levels</button>
+      </div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead id="bom-head"><tr>
+        <th aria-sort="ascending"><button class="sort" type="button" data-sort="name">Material <span class="arr"></span></button></th>
+        <th class="n"><button class="sort" type="button" data-sort="need">Still needed <span class="arr"></span></button></th>
+        <th class="n"><button class="sort" type="button" data-sort="have">I have <span class="arr"></span></button></th>
+      </tr></thead>
+      <tbody id="bom"></tbody>
+    </table></div>
+    <textarea class="copybox" id="copybox" readonly hidden aria-label="Bill of materials as text"></textarea>
+    <p class="note" id="msg" aria-live="polite"></p>
+    <p class="note">Source: the Hideout page on the Gray Zone Warfare Fandom wiki. The wiki lists "Wood" and "Woods" separately; both are counted as Wood here. Money is counted in dollars.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var KEY = "gzw-hideout-levels-v1";
+  var M = "$";
+  var ROOMS = [
+    { name: "Laboratory", stations: [
+      { id: "heat", name: "Heat Source", levels: [
+        { "Steel": 3, "Construction Material": 2, "Wood": 1 },
+        { "Steel": 4, "Plumbing Parts": 2, "Construction Material": 3, "Burner Head": 1 },
+        { "Steel": 10, "Plumbing Parts": 5, "Construction Material": 5, "Burner Head": 2, "Mechanical Parts": 2, "$": 40000 } ] },
+      { id: "extract", name: "Extraction Vessel", levels: [
+        { "Steel": 1, "Copper": 1, "Plumbing Parts": 1, "Analog Indicator": 1 },
+        { "Copper": 5, "Plumbing Parts": 1, "Analog Indicator": 1, "Water Pump": 1 } ] },
+      { id: "react", name: "Reaction Vessel", levels: [
+        { "Plastics": 2, "Construction Material": 1, "Silicone Sealant": 1 },
+        { "Steel": 4, "Chemicals": 2, "Zinc Electrode": 1 },
+        { "Steel": 12, "Stainless Steel Sheet": 3, "Mechanical Parts": 6, "$": 45000 } ] },
+      { id: "filter", name: "Filtration", levels: [
+        { "Wood": 2, "Fabrics": 4 },
+        { "Steel": 3, "Fine Metal Mesh": 3 } ] },
+      { id: "analysis", name: "Analysis", levels: [
+        { "Plastics": 2, "Electrical Parts": 1, "Circuit Board": 1 },
+        { "Plastics": 2, "Electrical Parts": 4, "Circuit Board": 3, "Mechanical Parts": 2, "Vapor Lamp": 1, "Crystal Prism": 1, "$": 35000 } ] },
+      { id: "glass", name: "Glassware", levels: [
+        { "Glass": 1, "Plastics": 1, "Laboratory Flask": 1 },
+        { "Glass": 2, "Plastics": 1, "Laboratory Flask": 1, "Mechanical Pipette": 1 } ] },
+      { id: "labstore", name: "Laboratory Storage", levels: [
+        { "Steel": 1, "Electrical Parts": 1, "Refrigerant": 1, "Plumbing Parts": 1 },
+        { "Steel": 3, "Glass": 3, "Plumbing Parts": 2, "Electrical Parts": 1, "Refrigerant": 1 },
+        { "Steel": 6, "Glass": 5, "Plumbing Parts": 2, "Refrigerant": 2, "Electrical Parts": 2, "Circuit Board": 2, "$": 45000 } ] },
+      { id: "safety", name: "Safety", levels: [
+        { "Mechanical Parts": 2, "Plastics": 2, "PC Fan": 2 },
+        { "Steel": 10, "Electrical Parts": 5, "Plumbing Parts": 5, "PC Fan": 3, "HEPA Filter": 1, "$": 35000 } ] }
+    ] },
+    { name: "Electronics Workshop", stations: [
+      { id: "hardware", name: "Hardware", levels: [
+        { "Motherboard": 1, "Graphics Card": 1, "CPU": 1, "PC Fan": 1, "RAM": 1, "Power Supply": 1 },
+        { "Motherboard": 1, "Graphics Card": 1, "CPU": 1, "Plumbing Parts": 2, "RAM": 1, "Power Supply": 1 },
+        { "Motherboard": 1, "Server CPU": 1, "Electrical Parts": 5, "RAM": 4, "Power Supply": 1, "$": 45000 } ] },
+      { id: "software", name: "Software", levels: [
+        { "Civilian Software": 3, "Military Software": 1 },
+        { "Civilian Software": 6, "Military Software": 2, "Graphics Card": 1 } ] },
+      { id: "micro", name: "Micro Electronics", levels: [
+        { "Soldering Iron": 1, "Multimeter": 1, "Toolset": 1, "Power Supply": 1, "Wood": 1 },
+        { "Soldering Iron": 2, "Multimeter": 1, "Power Supply": 1, "Oscilloscope": 1, "Electrical Parts": 4 },
+        { "Microscope": 1, "Multimeter": 1, "Circuit Board": 2, "Power Supply": 1, "Electrical Parts": 5, "$": 35000 } ] },
+      { id: "machine", name: "Machine Tools", levels: [
+        { "Wood": 1, "Steel": 1, "Toolset": 1 },
+        { "Steel": 3, "Electrical Parts": 1, "Tooling Coolant": 1, "CNC Drill Bits": 1 } ] },
+      { id: "rf", name: "RF Sensors", levels: [
+        { "Wood": 1, "Steel": 1, "Electrical Parts": 1, "Signal Generator": 1, "Soldering Iron": 1 },
+        { "Steel": 6, "Mechanical Parts": 2, "Electrical Parts": 4, "Signal Generator": 1, "Oscilloscope": 1, "Laser Tube": 1, "$": 30000 } ] },
+      { id: "wstore", name: "Workshop Storage", levels: [
+        { "Wood": 1, "Mechanical Parts": 1 },
+        { "Steel": 9, "Mechanical Parts": 3 },
+        { "Steel": 12, "Mechanical Parts": 6, "Stainless Steel Sheet": 4, "$": 45000 } ] }
+    ] },
+    { name: "Utility Room", stations: [
+      { id: "gen", name: "Generator", levels: [
+        { "Steel": 1, "Mechanical Parts": 1, "Motor Oil": 1, "Dynamo": 1 },
+        { "Steel": 2, "Mechanical Parts": 2, "Motor Oil": 1, "Dynamo": 1, "Plumbing Parts": 1, "Electrical Parts": 1 } ] }
+    ] }
+  ];
+
+  var all = [];
+  ROOMS.forEach(function (r) { r.stations.forEach(function (s) { s.room = r.name; all.push(s); }); });
+  var state = {}, have = {};
+  all.forEach(function (s) { state[s.id] = 0; });
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      var d = JSON.parse(raw);
+      all.forEach(function (s) {
+        var v = d && d[s.id];
+        if (typeof v === "number" && v >= 0 && v <= s.levels.length) state[s.id] = Math.floor(v);
+      });
+    } catch (e) {}
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  var HAVE_KEY = "gzw-hideout-have-v1";
+  function loadHave() {
+    try {
+      var d = JSON.parse(localStorage.getItem(HAVE_KEY) || "{}");
+      Object.keys(d).forEach(function (k) {
+        if (typeof d[k] === "number" && d[k] > 0) have[k] = Math.floor(d[k]);
+      });
+    } catch (e) {}
+  }
+  function saveHave() { try { localStorage.setItem(HAVE_KEY, JSON.stringify(have)); } catch (e) {} }
+
+  function money(n) { return "$" + n.toLocaleString("en-US"); }
+  function $(id) { return document.getElementById(id); }
+
+  /* controls */
+  var controls = $("controls");
+  ROOMS.forEach(function (r) {
+    var room = document.createElement("div");
+    room.className = "room";
+    var h = document.createElement("h3");
+    h.textContent = r.name;
+    var grid = document.createElement("div");
+    grid.className = "room-grid";
+    r.stations.forEach(function (s) {
+      var c = document.createElement("div");
+      c.className = "ctl";
+      var top = document.createElement("div");
+      top.className = "ctl-top";
+      top.innerHTML = '<span class="ctl-name">' + s.name + '</span><span class="ctl-count num" data-count="' + s.id + '"></span>';
+      var seg = document.createElement("div");
+      seg.className = "seg";
+      seg.setAttribute("role", "group");
+      seg.setAttribute("aria-label", s.name + " level");
+      for (var i = 0; i <= s.levels.length; i++) {
+        (function (lv) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.textContent = lv;
+          b.setAttribute("data-s", s.id);
+          b.setAttribute("data-l", lv);
+          b.setAttribute("aria-label", s.name + " level " + lv);
+          b.addEventListener("click", function () { state[s.id] = lv; save(); update(); });
+          seg.appendChild(b);
+        })(i);
+      }
+      c.appendChild(top);
+      c.appendChild(seg);
+      grid.appendChild(c);
+    });
+    room.appendChild(h);
+    room.appendChild(grid);
+    controls.appendChild(room);
+  });
+
+  function updateControls() {
+    var btns = controls.querySelectorAll("button");
+    for (var i = 0; i < btns.length; i++) {
+      var b = btns[i];
+      var cur = state[b.getAttribute("data-s")];
+      var lv = +b.getAttribute("data-l");
+      b.setAttribute("aria-pressed", lv === cur ? "true" : "false");
+      b.classList.toggle("below", lv < cur && lv > 0);
+    }
+    all.forEach(function (s) {
+      var el = controls.querySelector('[data-count="' + s.id + '"]');
+      if (el) el.textContent = state[s.id] + "/" + s.levels.length;
+    });
+  }
+
+  function chips(lvl) {
+    var out = "";
+    Object.keys(lvl).forEach(function (k) {
+      if (k === M) out += '<span class="chip money"><b>' + money(lvl[k]) + '</b></span>';
+      else out += '<span class="chip"><b>' + lvl[k] + '×</b>' + k + '</span>';
+    });
+    return out;
+  }
+
+  function renderCards() {
+    var html = "";
+    all.forEach(function (s) {
+      var cur = state[s.id], n = s.levels.length, maxed = cur >= n;
+      if (maxed) return;
+      html += '<article class="card"><div class="card-head"><div><div class="eyebrow">' + s.room + '</div><h3>' + s.name + '</h3></div>' +
+        '<span class="tag ' + (maxed ? "maxed" : "prog") + '">' + (maxed ? "Maxed" : cur + " of " + n) + '</span></div><ul class="lvls">';
+      s.levels.forEach(function (lvl, i) {
+        var L = i + 1;
+        if (L <= cur) {
+          html += '<li class="lvl built"><span class="lvl-label">L' + L + '</span><span class="built-note">Built</span></li>';
+        } else {
+          var next = L === cur + 1;
+          html += '<li class="lvl ' + (next ? "next" : "later") + '"><span class="lvl-label">L' + L + '</span><div>' +
+            (next ? '<span class="next-tag">Next</span>' : "") + '<div class="chips">' + chips(lvl) + '</div></div></li>';
+        }
+      });
+      html += "</ul></article>";
+    });
+    if (!html) html = '<p class="done" style="grid-column:1/-1">Every station is maxed.</p>';
+    $("cards").innerHTML = html;
+  }
+
+  function totals(remainingOnly) {
+    var t = {};
+    all.forEach(function (s) {
+      s.levels.forEach(function (lvl, i) {
+        if (remainingOnly && i + 1 <= state[s.id]) return;
+        Object.keys(lvl).forEach(function (k) { t[k] = (t[k] || 0) + lvl[k]; });
+      });
+    });
+    return t;
+  }
+
+  var sort = { key: "name", dir: 1 }, lastRem = {};
+  function stepper(k) {
+    var nm = k === M ? "Money" : k;
+    var id = "have-" + (k === M ? "money" : k.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
+    return '<span class="stepper"><button type="button" class="step" data-act="-" aria-label="Decrease ' + nm + '">−</button>' +
+      '<input type="number" min="0" step="1" inputmode="numeric" id="' + id + '" value="' + (have[k] || 0) + '" data-k="' + k + '" aria-label="' + nm + ' I have">' +
+      '<button type="button" class="step" data-act="+" aria-label="Increase ' + nm + '">+</button></span>';
+  }
+  function refreshOk() {
+    var rows = $("bom").querySelectorAll("tr[data-k]");
+    for (var i = 0; i < rows.length; i++) {
+      var k = rows[i].getAttribute("data-k");
+      rows[i].classList.toggle("ok", (have[k] || 0) >= (lastRem[k] || 0));
+    }
+  }
+  function updateSortHeads() {
+    var ths = $("bom-head").querySelectorAll("th");
+    for (var i = 0; i < ths.length; i++) {
+      var b = ths[i].querySelector("button"), on = b.getAttribute("data-sort") === sort.key;
+      if (on) ths[i].setAttribute("aria-sort", sort.dir === 1 ? "ascending" : "descending");
+      else ths[i].removeAttribute("aria-sort");
+      b.querySelector(".arr").textContent = on ? (sort.dir === 1 ? "▲" : "▼") : "";
+    }
+  }
+  function setHave(k, v, row, fromInput) {
+    have[k] = v;
+    saveHave();
+    if (!fromInput) row.querySelector("input").value = v;
+    refreshOk();
+  }
+  $("bom-head").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-sort]");
+    if (!b) return;
+    var key = b.getAttribute("data-sort");
+    if (sort.key === key) sort.dir = -sort.dir;
+    else { sort.key = key; sort.dir = key === "name" ? 1 : -1; }
+    renderBom();
+  });
+  $("bom").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-act]");
+    if (!b) return;
+    var row = b.closest("tr"), k = row.getAttribute("data-k"), step = k === M ? 1000 : 1;
+    var v = (have[k] || 0) + (b.getAttribute("data-act") === "+" ? step : -step);
+    setHave(k, Math.max(0, v), row, false);
+  });
+  $("bom").addEventListener("input", function (e) {
+    var inp = e.target;
+    if (inp.tagName !== "INPUT") return;
+    var v = parseInt(inp.value, 10);
+    setHave(inp.getAttribute("data-k"), isNaN(v) || v < 0 ? 0 : v, inp.closest("tr"), true);
+  });
+  $("bom").addEventListener("change", function (e) {
+    var inp = e.target;
+    if (inp.tagName === "INPUT") inp.value = have[inp.getAttribute("data-k")] || 0;
+  });
+  var lastList = "";
+  function renderBom() {
+    var rem = totals(true), full = totals(false);
+    var names = Object.keys(full).filter(function (k) { return k !== M; });
+    var rows = names.filter(function (k) { return (rem[k] || 0) > 0; });
+    rows.sort(function (a, b) {
+      var d = 0;
+      if (sort.key === "need") d = rem[a] - rem[b];
+      else if (sort.key === "have") d = (have[a] || 0) - (have[b] || 0);
+      return d ? d * sort.dir : (sort.key === "name" ? sort.dir : 1) * a.localeCompare(b);
+    });
+    var html = "";
+    var remMoney = rem[M] || 0;
+    rows.forEach(function (k) {
+      html += '<tr data-k="' + k + '"><td>' + k + '</td><td class="n need">' + rem[k] + '</td><td class="n">' + stepper(k) + '</td></tr>';
+    });
+    if (!rows.length) html = '<tr><td colspan="3" class="done">Every station is at max level. Nothing left to collect.</td></tr>';
+    $("bom").innerHTML = html;
+    lastRem = rem;
+    refreshOk();
+    updateSortHeads();
+    $("bom-money").textContent = money(remMoney);
+    $("bom-count").textContent = "money still needed, plus " + rows.length + " materials below";
+    lastList = rows.map(function (k) { return rem[k] + "x " + k; }).concat(remMoney ? [money(remMoney)] : []).join("\n");
+  }
+
+  function renderProgress() {
+    var built = 0, total = 0;
+    all.forEach(function (s) { built += state[s.id]; total += s.levels.length; });
+    $("p-built").textContent = built;
+    $("p-total").textContent = total;
+    var pct = total ? Math.round(built / total * 100) : 0;
+    $("p-bar").style.width = pct + "%";
+    $("p-bar-wrap").setAttribute("aria-valuenow", pct);
+    var rem = totals(true);
+    $("p-money").textContent = money(rem[M] || 0) + " left";
+  }
+
+  function update() { updateControls(); renderCards(); renderBom(); renderProgress(); }
+
+  $("copy").addEventListener("click", function () {
+    var box = $("copybox"), msg = $("msg");
+    box.value = lastList;
+    function fallback() {
+      box.hidden = false; box.focus(); box.select();
+      msg.textContent = "Copy was blocked here. The list is selected below, press Ctrl+C or Cmd+C.";
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(lastList).then(function () {
+          box.hidden = true; msg.textContent = "List copied.";
+        }, fallback);
+      } else fallback();
+    } catch (e) { fallback(); }
+  });
+
+  var armed = false, armTimer = null;
+  $("reset").addEventListener("click", function () {
+    var b = $("reset");
+    if (!armed) {
+      armed = true;
+      b.textContent = "Click again to clear all levels";
+      armTimer = setTimeout(function () { armed = false; b.textContent = "Reset levels"; }, 4000);
+      return;
+    }
+    clearTimeout(armTimer);
+    armed = false;
+    b.textContent = "Reset levels";
+    all.forEach(function (s) { state[s.id] = 0; });
+    save(); update();
+    $("msg").textContent = "All levels set back to 0.";
+  });
+
+  load();
+  loadHave();
+  update();
+})();
+</script>
+</html>
