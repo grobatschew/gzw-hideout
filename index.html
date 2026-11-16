@@ -364,7 +364,7 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
         { "Wood": 2, "Fabrics": 4 },
         { "Steel": 3, "Fine Metal Mesh": 3 } ] },
       { id: "analysis", name: "Analysis", levels: [
-        { "Plastics": 2, "Electrical Parts": 1, "Circuit Board": 1 },
+        { "Plastics": 2, "Electrical Parts": 1, "Circuit Board": 1, "Complex Glass Electrode": 1 },
         { "Plastics": 2, "Electrical Parts": 4, "Circuit Board": 3, "Mechanical Parts": 2, "Vapor Lamp": 1, "Crystal Prism": 1, "$": 35000 } ] },
       { id: "glass", name: "Glassware", levels: [
         { "Glass": 1, "Plastics": 1, "Laboratory Flask": 1 },
@@ -374,13 +374,13 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
         { "Steel": 3, "Glass": 3, "Plumbing Parts": 2, "Electrical Parts": 1, "Refrigerant": 1 },
         { "Steel": 6, "Glass": 5, "Plumbing Parts": 2, "Refrigerant": 2, "Electrical Parts": 2, "Circuit Board": 2, "$": 45000 } ] },
       { id: "safety", name: "Ventilation System", levels: [
-        { "Mechanical Parts": 2, "Plastics": 2, "PC Fan": 2 },
+        { "Electrical Parts": 2, "Plastics": 2, "PC Fan": 2 },
         { "Steel": 10, "Electrical Parts": 5, "Plumbing Parts": 5, "PC Fan": 3, "HEPA Filter": 1, "$": 35000 } ] }
     ] },
     { name: "Electronics Workshop", stations: [
       { id: "hardware", name: "Hardware", levels: [
         { "Motherboard": 1, "Graphics Card": 1, "CPU": 1, "PC Fan": 1, "RAM": 1, "Power Supply": 1 },
-        { "Motherboard": 1, "Graphics Card": 1, "CPU": 1, "Plumbing Parts": 2, "RAM": 1, "Power Supply": 1 },
+        { "Motherboard": 1, "Graphics Card": 1, "CPU": 1, "Plumbing Parts": 2, "RAM": 3, "Power Supply": 1 },
         { "Motherboard": 1, "Server CPU": 1, "Electrical Parts": 5, "RAM": 4, "Power Supply": 1, "$": 45000 } ] },
       { id: "software", name: "Software", levels: [
         { "Civilian Software": 3, "Military Software": 1 },
@@ -388,17 +388,17 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
       { id: "micro", name: "Micro Electronics", levels: [
         { "Soldering Iron": 1, "Multimeter": 1, "Toolset": 1, "Power Supply": 1, "Wood": 1 },
         { "Soldering Iron": 2, "Multimeter": 1, "Power Supply": 1, "Oscilloscope": 1, "Electrical Parts": 4 },
-        { "Microscope": 1, "Multimeter": 1, "Circuit Board": 2, "Power Supply": 1, "Electrical Parts": 5, "$": 35000 } ] },
+        { "Microscope": 1, "Multimeter": 1, "Circuit Board": 2, "Power Supply": 1, "Oscilloscope": 1, "Electrical Parts": 5, "$": 35000 } ] },
       { id: "machine", name: "Machine Tools", levels: [
         { "Wood": 1, "Steel": 1, "Toolset": 1 },
-        { "Steel": 3, "Electrical Parts": 1, "Tooling Coolant": 1, "CNC Drill Bits": 1 } ] },
+        { "Steel": 3, "Mechanical Parts": 2, "Electrical Parts": 1, "Tooling Coolant": 1, "CNC Drill Bits": 1 } ] },
       { id: "rf", name: "RF Sensors", levels: [
         { "Wood": 1, "Steel": 1, "Electrical Parts": 1, "Signal Generator": 1, "Soldering Iron": 1 },
         { "Steel": 6, "Mechanical Parts": 2, "Electrical Parts": 4, "Signal Generator": 1, "Oscilloscope": 1, "Laser Tube": 1, "$": 30000 } ] },
       { id: "wstore", name: "Workshop Storage Equipment", levels: [
         { "Wood": 1, "Mechanical Parts": 1 },
         { "Steel": 9, "Mechanical Parts": 3 },
-        { "Steel": 12, "Mechanical Parts": 6, "Stainless Steel Sheet": 4, "$": 45000 } ] }
+        { "Steel": 12, "Mechanical Parts": 6, "Stainless Steel Sheet": 4, "$": 30000 } ] }
     ] },
     { name: "Utility Room", stations: [
       { id: "gen", name: "Generator", levels: [
